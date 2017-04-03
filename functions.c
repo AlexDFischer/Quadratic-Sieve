@@ -117,11 +117,15 @@ void printBigNumList(BigNumList list)
 }
 
 void divideAtInterval(BigNumList values, FactorizationTable table,
-  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex)
+  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex, BigNumList tValues)
 {
   size_t i;
   for (i = initialIndex; i < values.len; i += offset)
   {
+    if (mpz_get_ui(divisor) == 23)
+    {
+      //gmp_printf("dividing by 23 (offset=%lu) at T=%Zd\n", offset, tValues.nums[i]);
+    }
     mpz_fdiv_q(values.nums[i], values.nums[i], divisor);
     factorizationTableIncrementExponent(table, i, primeIndex);
   }

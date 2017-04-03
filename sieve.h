@@ -57,4 +57,4 @@ exponent_t factorizationTableExponent(FactorizationTable table, size_t fTindex, 
 void printFactorization(FactorizationTable table, PrimeList primes, size_t ftIndex);
 
 void divideAtInterval(BigNumList values, FactorizationTable table,
-  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex);
+  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex, BigNumList tValues);

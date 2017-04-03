@@ -3,6 +3,9 @@
 #include <math.h>
 #include <gmp.h>
 #include <mpfr.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_matrix.h>
 
 typedef struct
 {
@@ -27,6 +30,12 @@ typedef struct
   exponent_t *mem;
 } FactorizationTable;
 
+typedef struct
+{
+  size_t numRows, numCols;
+  size_t *mem;
+} Matrix;
+
 /* defined in primes.c */
 PrimeList primesLEq(prime_t B);
 void freePrimeList(PrimeList primeList);
@@ -46,3 +55,6 @@ void freeFactorizationTable(FactorizationTable table);
 void factorizationTableIncrementExponent(FactorizationTable table, size_t fTindex, size_t primeIndex);
 exponent_t factorizationTableExponent(FactorizationTable table, size_t fTindex, size_t primeIndex);
 void printFactorization(FactorizationTable table, PrimeList primes, size_t ftIndex);
+
+void divideAtInterval(BigNumList values, FactorizationTable table,
+  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex);

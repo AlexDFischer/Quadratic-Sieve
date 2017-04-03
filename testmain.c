@@ -2,10 +2,12 @@
 
 int main(int argc, char **argv)
 {
-  mpz_t N, lower, upper;
-  mpz_init_set_ui(N, 1234567890);
+  mpz_t N, lower, upper, dummy;
+  mpz_init(N);
+  gmp_sscanf(argc > 1 ? argv[1] : "12345", "%Zd", N);
   mpz_init(lower);
   mpz_init(upper);
+  mpz_init(dummy);
 
   prime_t B = smoothnessBound(N);
   printf("We will generate primes up to %lu\n", B);
@@ -26,7 +28,7 @@ int main(int argc, char **argv)
   mpz_out_str(stdout, 10, lower);
   printf(" to T=");
   mpz_out_str(stdout, 10, upper);
-  printf(".  We will try %lu different values ot T.\n", len);
+  printf(".  We will try %lu different values of T.\n", len);
 
   BigNumList tValues = initList(len), origValues = initList(len), currValues = initList(len);
   size_t i;
@@ -45,8 +47,6 @@ int main(int argc, char **argv)
     mpz_set(currValues.nums[i], origValues.nums[i]);
   }
   FactorizationTable factorizationTable = initFactorizationTable(len, numPrimes);
-  printf("checkpoint 4\n");
-  // basically do trial division with p=2
   size_t primeIndex = 0;
   size_t prime = factorBase.primes[primeIndex];
   size_t primePower = prime;
@@ -56,12 +56,26 @@ int main(int argc, char **argv)
   mpz_init(fTmodpe);
   size_t var1 = 0, var2 = 0;
 
+  // first do a little trial division
+  for (primeIndex = 0; primeIndex < factorBase.len; primeIndex++)
+  {
+    printf("prime %lu: %lu\n", primeIndex, factorBase.primes[primeIndex]);
+    if (mpz_fdiv_r_ui(dummy, N, factorBase.primes[primeIndex]) == 0)
+    {
+      printf("N is divisible by %lu\n", factorBase.primes[primeIndex]);
+      exit(0);
+    } else
+    {
+      printf("N is not divisible by %lu: remainder is %lu\n", factorBase.primes[primeIndex], mpz_fdiv_r_ui(dummy, N, factorBase.primes[primeIndex]));
+    }
+  }
+
   //printBigNumList(tValues);
   //printBigNumList(origValues);
 
   // outer loop: loop over powers of our prime 2
 
-  // number of solutions (unique modulo p^e) to the congruence f(T) = 0 mode p^e
+  // number of solutions (unique modulo 2^e) to the congruence f(T) = 0 mode 2^e
   int foundSolutions = 1;
   do
   {
@@ -99,11 +113,45 @@ int main(int argc, char **argv)
     primePower = prime;
     mpz_set_ui(primeMP, prime);
     mpz_set_ui(primePowerMP, primePower);
+    // first check if N is divisible by p
+    mpz_mod(dummy, N, primeMP);
+
     // middle loop: loop over powers of our prime p
     foundSolutions = 1;
+    size_t sol1index, sol2index, prevSol1index = 0;
     do
     {
       foundSolutions = 0;
+      // lift our previous solution mod p^(e-1) to a solution mod p^e
+      for (var1 = prevSol1index; var1 < primePower && var1 < (currValues.len + 1) / 2 && !foundSolutions; var1 += primePower / prime)
+      {
+        mpz_mod(fTmodpe, origValues.nums[var1], primePowerMP);
+        if (mpz_get_ui(fTmodpe) == 0)
+        {
+          foundSolutions = 1;
+          // assuming N is not a multiple of p, T^2-N=0 mod p will have 2 unique solutions
+          sol1index = var1;
+          mpz_set_ui(dummy, primePower);
+          mpz_sub(dummy, dummy, tValues.nums[sol1index]);
+          mpz_sub(dummy, dummy, tValues.nums[sol1index]);
+          mpz_mod(dummy, dummy, primePowerMP); // if T is a solution to f(T=0) mod p then dummy = p - 2T
+          sol2index = sol1index + mpz_get_ui(dummy); // if f(T) = 0 mod p then f(p-T)=(p-T)^2-N=T^2-N=0 mod p
+          gmp_printf("for prime power = %Zd, solutions are T = %Zd", primePowerMP, tValues.nums[sol1index]);
+          if (sol2index < tValues.len)
+          {
+            gmp_printf(" and %Zd", tValues.nums[sol2index]);
+          }
+          printf("\n");
+          divideAtInterval(currValues, factorizationTable, sol1index, primePower, primeMP, primeIndex);
+          divideAtInterval(currValues, factorizationTable, sol2index, primePower, primeMP, primeIndex);
+          printf("for prime power=%lu", primePower);
+          printBigNumList(currValues);
+          prevSol1index = sol1index;
+          //printf("did division: p^e is %lu, sol1index = %lu, sol2index = %lu\n", primePower, sol1index, sol2index);
+          //printBigNumList(currValues);
+        }
+      }
+      /*
       // FIRST: find solutions to f(T) = 0 mod p^e
       for (var1 = 0; var1 < primePower && var1 < currValues.len; var1++)
       {
@@ -111,36 +159,49 @@ int main(int argc, char **argv)
         if (mpz_get_ui(fTmodpe) == 0)
         {
           foundSolutions++;
+          divideAtInterval(currValues, factorizationTable, var1, primePower, primeMP, primeIndex);
           // INNER LOOP: now advance by p^e and divide each entry by p, incrementing
           // the prime power in the factorization table as well
-          for (var2 = var1; var2 < currValues.len; var2 += primePower)
-          {
-            mpz_fdiv_q(currValues.nums[var2], currValues.nums[var2], primeMP);
-            factorizationTableIncrementExponent(factorizationTable, var2, primeIndex);
-          }
+
         }
       }
-      if (foundSolutions)
-      {
-        //printf("For prime power =  %lu: ", primePower);
-        //printBigNumList(currValues);
-      }
-      // now try the next prime power
+      */
       primePower *= prime;
       mpz_mul(primePowerMP, primePowerMP, primeMP);
     } while (foundSolutions > 0);
   }
 
   // find all values in currValues that sieved down to 1
+  size_t numRelations = 0;
   for (var1 = 0; var1 < currValues.len; var1++)
   {
     if (mpz_get_ui(currValues.nums[var1]) == 1)
     {
-      mpz_out_str(stdout, 10, tValues.nums[var1]);
-      printf("^2 - N = ");
-      printFactorization(factorizationTable, factorBase, var1);
-      printf("\n");
+      numRelations++;
     }
+  }
+  size_t relationsList[numRelations];
+  var2 = 0;
+  for (var1 = 0; var1 < currValues.len; var1++)
+  {
+    if (mpz_get_ui(currValues.nums[var1]) == 1)
+    {
+      relationsList[var2] = var1;
+      mpz_out_str(stdout, 10, tValues.nums[relationsList[var2]]);
+      printf("^2 - N = ");
+      printFactorization(factorizationTable, factorBase, relationsList[var2]);
+      printf("\n");
+      var2++;
+    }
+  }
+
+  for (var1 = 0; var1 < tValues.len; var1++)
+  {
+    printf("%lu:", var1);
+    mpz_out_str(stdout, 10, tValues.nums[var1]);
+    printf(":");
+    mpz_out_str(stdout, 10, currValues.nums[var1]);
+    printf("\n");
   }
 
   freeFactorizationTable(factorizationTable);

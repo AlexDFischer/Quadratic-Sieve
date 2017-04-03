@@ -116,46 +116,13 @@ void printBigNumList(BigNumList list)
   printf("\n");
 }
 
-FactorizationTable initFactorizationTable(size_t len, size_t numPrimes)
+void divideAtInterval(BigNumList values, FactorizationTable table,
+  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex)
 {
-  FactorizationTable result;
-  result.mem = calloc(len * numPrimes, sizeof(exponent_t));
-  result.len = len;
-  result.numPrimes = numPrimes;
-  return result;
-}
-
-void freeFactorizationTable(FactorizationTable table)
-{
-  free(table.mem);
-}
-
-void factorizationTableIncrementExponent(FactorizationTable table, size_t fTindex, size_t primeIndex)
-{
-  table.mem[fTindex * table.numPrimes + primeIndex]++;
-}
-
-exponent_t factorizationTableExponent(FactorizationTable table, size_t fTindex, size_t primeIndex)
-{
-  return table.mem[fTindex * table.numPrimes + primeIndex];
-}
-
-void printFactorization(FactorizationTable table, PrimeList primes, size_t ftIndex)
-{
-  exponent_t *mem = table.mem + ftIndex * table.numPrimes;
-  size_t primeIndex, firstFactor = 1;
-  for (primeIndex = 0; primeIndex < table.numPrimes; primeIndex++)
+  size_t i;
+  for (i = initialIndex; i < values.len; i += offset)
   {
-    if (mem[primeIndex] > 0)
-    {
-      if (firstFactor)
-      {
-        firstFactor = 0;
-      } else
-      {
-        printf(" * ");
-      }
-      printf("%lu^%d", primes.primes[primeIndex], mem[primeIndex]);
-    }
+    mpz_fdiv_q(values.nums[i], values.nums[i], divisor);
+    factorizationTableIncrementExponent(table, i, primeIndex);
   }
 }

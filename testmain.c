@@ -24,28 +24,7 @@ int main(int argc, char **argv)
   // len is the number of values of f(T) that we'll find
   size_t len = mpz_get_ui(numOriginalValues);
   len++;
-  printf("We will try from T=");
-  mpz_out_str(stdout, 10, lower);
-  printf(" to T=");
-  mpz_out_str(stdout, 10, upper);
-  printf(".  We will try %lu different values of T.\n", len);
 
-  BigNumList tValues = initList(len), origValues = initList(len), currValues = initList(len);
-  size_t i;
-
-  // set T values
-  mpz_set(tValues.nums[0], lower);
-  for (i = 1; i < len; i++)
-  {
-    mpz_add_ui(tValues.nums[i], tValues.nums[i-1], 1);
-  }
-  // set f(T) values
-  for (i = 0; i < len; i++)
-  {
-    mpz_mul(origValues.nums[i], tValues.nums[i], tValues.nums[i]);
-    mpz_sub(origValues.nums[i], origValues.nums[i], N);
-    mpz_set(currValues.nums[i], origValues.nums[i]);
-  }
   FactorizationTable factorizationTable = initFactorizationTable(len, numPrimes);
   size_t primeIndex = 0;
   size_t prime = factorBase.primes[primeIndex];
@@ -55,7 +34,6 @@ int main(int argc, char **argv)
   mpz_init_set_ui(primePowerMP, primePower);
   mpz_init(fTmodpe);
   size_t var1 = 0, var2 = 0;
-
   // first do a little trial division
   for (primeIndex = 0; primeIndex < factorBase.len; primeIndex++)
   {
@@ -68,6 +46,27 @@ int main(int argc, char **argv)
     {
       //printf("N is not divisible by %lu: remainder is %lu\n", factorBase.primes[primeIndex], mpz_fdiv_r_ui(dummy, N, factorBase.primes[primeIndex]));
     }
+  }
+
+  printf("We will try from T=");
+  mpz_out_str(stdout, 10, lower);
+  printf(" to T=");
+  mpz_out_str(stdout, 10, upper);
+  printf(".  We will try %lu different values of T.\n", len);
+  BigNumList tValues = initList(len), origValues = initList(len), currValues = initList(len);
+  //size_t i;
+  // set T values
+  mpz_set(tValues.nums[0], lower);
+  for (var1 = 1; var1 < len; var1++)
+  {
+    mpz_add_ui(tValues.nums[var1], tValues.nums[var1-1], 1);
+  }
+  // set f(T) values
+  for (var1 = 0; var1 < len; var1++)
+  {
+    mpz_mul(origValues.nums[var1], tValues.nums[var1], tValues.nums[var1]);
+    mpz_sub(origValues.nums[var1], origValues.nums[var1], N);
+    mpz_set(currValues.nums[var1], origValues.nums[var1]);
   }
 
   //printBigNumList(tValues);
@@ -229,7 +228,7 @@ int main(int argc, char **argv)
       */
       primePower *= prime;
       mpz_mul(primePowerMP, primePowerMP, primeMP);
-    } while (foundSolutions > 0);
+    } while (foundSolutions);
   }
 
   // find all values in currValues that sieved down to 1

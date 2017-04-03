@@ -3,9 +3,6 @@
 #include <math.h>
 #include <gmp.h>
 #include <mpfr.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_matrix.h>
 
 typedef struct
 {

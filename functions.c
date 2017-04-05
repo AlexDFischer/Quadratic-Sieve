@@ -18,6 +18,7 @@ void L(mpfr_t rop, mpz_t N)
   mpfr_mul(lnN_lnlnN, lnN, lnlnN, MPFR_RNDN);
   mpfr_sqrt(sqrt_lnN_lnlnN, lnN_lnlnN, MPFR_RNDN);
   mpfr_exp(rop, sqrt_lnN_lnlnN, MPFR_RNDN);
+
   mpfr_clear(Nf);
   mpfr_clear(lnN);
   mpfr_clear(lnlnN);
@@ -26,21 +27,21 @@ void L(mpfr_t rop, mpz_t N)
 }
 
 /**
- * Returns L(N)^(1/sqrt(2)) as an unsigned long or prime_t
+ * Returns L(N)^pow as an unsigned long or prime_t
  */
-prime_t smoothnessBound(mpz_t N)
+prime_t LofNpow(mpz_t N, double pow)
 {
-  mpfr_t l, sqrt2inverse, b;
+  mpfr_t l, power, b;
   mpfr_init2(l, FLOAT_PRECISION);
-  mpfr_init2(sqrt2inverse, FLOAT_PRECISION);
+  mpfr_init2(power, FLOAT_PRECISION);
   mpfr_init2(b, FLOAT_PRECISION);
   L(l, N);
-  mpfr_set_d(sqrt2inverse, 1.0/sqrt(2.0), MPFR_RNDN);
-  mpfr_pow(b, l, sqrt2inverse, MPFR_RNDN);
+  mpfr_set_d(power, pow, MPFR_RNDN);
+  mpfr_pow(b, l, power, MPFR_RNDN);
   prime_t result = mpfr_get_ui(b, MPFR_RNDU);
   mpfr_clear(l);
   mpfr_clear(b);
-  mpfr_clear(sqrt2inverse);
+  mpfr_clear(power);
   return result;
 }
 /**
@@ -55,7 +56,7 @@ void lowerBoundT(mpz_t rop, mpz_t N)
   mpz_add_ui(rop, rop, 1);
   mpfr_clear(sqrtN);
 }
-
+/*
 void upperBoundT(mpz_t rop, mpz_t N)
 {
   mpz_t lower;
@@ -78,7 +79,7 @@ void upperBoundT(mpz_t rop, mpz_t N)
   mpfr_clear(sqrt2);
   mpfr_clear(lToSqrt2);
 }
-
+*/
 /**
  * Creates a list of mpz_t elements with len number elements and does the initialization of the mpz_t's
  */
@@ -114,19 +115,4 @@ void printBigNumList(BigNumList list)
     printf(" ");
   }
   printf("\n");
-}
-
-void divideAtInterval(BigNumList values, FactorizationTable table,
-  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex, BigNumList tValues)
-{
-  size_t i;
-  for (i = initialIndex; i < values.len; i += offset)
-  {
-    if (mpz_get_ui(divisor) == 23)
-    {
-      //gmp_printf("dividing by 23 (offset=%lu) at T=%Zd\n", offset, tValues.nums[i]);
-    }
-    mpz_fdiv_q(values.nums[i], values.nums[i], divisor);
-    factorizationTableIncrementExponent(table, i, primeIndex);
-  }
 }

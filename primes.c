@@ -6,7 +6,7 @@
 PrimeList primesLEq(prime_t B)
 {
   // isPrime[n] is 1 iff n is prime
-  char *isPrime = malloc(B + 1);
+  char isPrime[B + 1];
   prime_t n;
   for (n = 0; n <= B; n++)
   {
@@ -45,8 +45,6 @@ PrimeList primesLEq(prime_t B)
     result.primes[n] = p;
     n++;
   }
-  printf("number of primes less than or equal to %lu is %lu\n", B, count);
-  free(isPrime);
   return result;
 }
 

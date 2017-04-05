@@ -69,7 +69,7 @@ void printMatrix(Matrix m)
     printf("\n");
   }
 }
-
+// TODO unfinished, Yoni idk if you wanna use this in the null space thing
 void rref(Matrix m)
 {
   size_t i, j, leadingEntryIndex;
@@ -108,6 +108,7 @@ void addRows(Matrix m, size_t row1, size_t row2)
   }
 }
 
+/*
 int main()
 {
   Matrix m = initMatrix(5,100);
@@ -127,4 +128,4 @@ int main()
   printf("__________\n");
   printMatrix(m);
   freeMatrix(m);
-}
+}*/

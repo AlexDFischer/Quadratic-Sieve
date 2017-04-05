@@ -97,6 +97,7 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
     prevSol2index = 0;
     do
     {
+      // searches for solutions starting at prevSol1index, using hensel's lemma
       foundSolutions = findSolutions(prevSol1index, &sol1index, &sol2index, prime, primeMP, primePower, primePowerMP, origValues, tValues, dummy);
       if (!foundSolutions)
       {
@@ -109,75 +110,12 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
         prevSol1index = sol1index;
         prevSol2index = sol2index;
       }
-
-      // lift our previous solutions mod p^(e-1) to a solution mod p^e
-      /*for (var1 = prevSol1index; var1 <= (prevSol1index + 1) / 2 + primePower && var1 < currValues.len  && !foundSolutions; var1 += primePower / prime)
-      {
-        if (mpz_divisible_p(origValues.nums[var1], primePowerMP))
-        {
-          foundSolutions = 1;
-          // assuming N is not a multiple of p, T^2-N=0 mod p will have 2 unique solutions
-          sol1index = var1;
-          while (sol1index >= primePower)
-          {
-            sol1index -= primePower;
-          }
-          mpz_set_ui(dummy, primePower);
-          mpz_sub(dummy, dummy, tValues.nums[sol1index]);
-          mpz_sub(dummy, dummy, tValues.nums[sol1index]);
-          mpz_mod(dummy, dummy, primePowerMP); // if T is a solution to f(T=0) mod p then dummy = p - 2T
-          sol2index = sol1index + mpz_get_ui(dummy); // if f(T) = 0 mod p then f(p-T)=(p-T)^2-N=T^2-N=0 mod p
-          while (sol2index >= primePower)
-          {
-            sol2index -= primePower;
-          }
-          divideAtInterval(currValues, sol1index, primePower, primeMP);
-          divideAtInterval(currValues, sol2index, primePower, primeMP);
-          //printf("for prime power=%lu", primePower);
-          //printBigNumList(currValues);
-          prevSol1index = sol1index;
-          prevSol2index = sol2index;
-          //printf("did division: p^e is %lu, sol1index = %lu, sol2index = %lu\n", primePower, sol1index, sol2index);
-          //printBigNumList(currValues);
-        }
-      }
-
-      if (!foundSolutions)
-      {
-        // try again starting at prevSol2index. TODO this could be much more modular
-        for (var1 = prevSol2index; var1 <= (prevSol2index + 1) / 2 + primePower && var1 < currValues.len  && !foundSolutions; var1 += primePower / prime)
-        {
-          if (mpz_divisible_p(origValues.nums[var1], primePowerMP))
-          {
-            foundSolutions = 1;
-            // assuming N is not a multiple of p, T^2-N=0 mod p will have 2 unique solutions
-            sol1index = var1;
-            while (sol1index >= primePower)
-            {
-              sol1index -= primePower;
-            }
-            mpz_set_ui(dummy, primePower);
-            mpz_sub(dummy, dummy, tValues.nums[sol1index]);
-            mpz_sub(dummy, dummy, tValues.nums[sol1index]);
-            mpz_mod(dummy, dummy, primePowerMP); // if T is a solution to f(T=0) mod p then dummy = p - 2T
-            sol2index = sol1index + mpz_get_ui(dummy); // if f(T) = 0 mod p then f(p-T)=(p-T)^2-N=T^2-N=0 mod p
-            while (sol2index >= primePower)
-            {
-              sol2index -= primePower;
-            }
-            divideAtInterval(currValues, sol1index, primePower, primeMP);
-            divideAtInterval(currValues, sol2index, primePower, primeMP);
-            prevSol1index = sol1index;
-            prevSol2index = sol2index;
-          }
-        }
-      }*/
       // now try the next prime power
       primePower *= prime;
       mpz_mul(primePowerMP, primePowerMP, primeMP);
     } while (foundSolutions);
   }
-  // find all values in currValues that sieved down to 1
+  // find all values in currValues that sieved down to 1 and store their indicies
   size_t numRelations = 0;
   for (var1 = 0; var1 < currValues.len; var1++)
   {
@@ -221,8 +159,6 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
     }
     printf("\n");
   }
-  printf("matrix representing the relations we found:\n");
-  printMatrix(matrix);
 
   mpz_clear(remainder);
   mpz_clear(primeMP);
@@ -234,4 +170,45 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
   mpz_clear(lower);
   mpz_clear(upper);
   mpz_clear(numOriginalValues);
+}
+
+void divideAtInterval(BigNumList values, size_t initialIndex, size_t offset, mpz_t divisor)
+{
+  size_t i;
+  for (i = initialIndex; i < values.len; i += offset)
+  {
+    mpz_fdiv_q(values.nums[i], values.nums[i], divisor);
+  }
+}
+
+int findSolutions(size_t startIndex, size_t *sol1index,
+  size_t *sol2index, size_t prime, mpz_t primeMP, size_t primePower, mpz_t primePowerMP,
+  BigNumList origValues, BigNumList tValues, mpz_t dummy)
+{
+  size_t var1;
+  // start at startIndex and advance by p^(e-1), which is valid by hensel's lemma
+  for (var1 = startIndex; var1 <= (startIndex + 1) / 2 + primePower && var1 < tValues.len; var1 += primePower / prime)
+  {
+    if (mpz_divisible_p(origValues.nums[var1], primePowerMP))
+    {
+      // assuming N is not a multiple of p, T^2-N=0 mod p will have 2 unique solutions
+      *sol1index = var1;
+      while (*sol1index >= primePower)
+      {
+        *sol1index -= primePower;
+      }
+      // if T1 is first solution, second solution is -T1 (mod p^e)
+      mpz_set_ui(dummy, primePower);
+      mpz_sub(dummy, dummy, tValues.nums[*sol1index]);
+      mpz_sub(dummy, dummy, tValues.nums[*sol1index]);
+      mpz_mod(dummy, dummy, primePowerMP);
+      *sol2index = *sol1index + mpz_get_ui(dummy);
+      while (*sol2index >= primePower)
+      {
+        *sol2index -= primePower;
+      }
+      return 1;
+    }
+  }
+  return 0;
 }

@@ -33,15 +33,16 @@ typedef struct
   size_t *mem;
 } Matrix;
 
+void factor(mpz_t N, double numRelationsPower, double smoothnessPower);
+
 /* defined in primes.c */
 PrimeList primesLEq(prime_t B);
 void freePrimeList(PrimeList primeList);
 void printPrimes(PrimeList primeList);
 
 /* defined in functions.c */
-prime_t smoothnessBound(mpz_t N);
+prime_t LofNpow(mpz_t N, double pow);
 void lowerBoundT(mpz_t rop, mpz_t N);
-void upperBoundT(mpz_t rop, mpz_t N);
 
 BigNumList initList(size_t len);
 void freeBigNumList(BigNumList list);
@@ -53,5 +54,15 @@ void factorizationTableIncrementExponent(FactorizationTable table, size_t fTinde
 exponent_t factorizationTableExponent(FactorizationTable table, size_t fTindex, size_t primeIndex);
 void printFactorization(FactorizationTable table, PrimeList primes, size_t ftIndex);
 
-void divideAtInterval(BigNumList values, FactorizationTable table,
-  size_t initialIndex, size_t offset, mpz_t divisor, size_t primeIndex, BigNumList tValues);
+void divideAtInterval(BigNumList values,
+  size_t initialIndex, size_t offset, mpz_t divisor);
+
+int findSolutions(size_t startIndex, size_t *sol1index,
+  size_t *sol2index, size_t prime, mpz_t primeMP, size_t primePower, mpz_t primePowerMP,
+  BigNumList origValues, BigNumList tValues, mpz_t dummy);
+
+/* defined in linalg.c */
+Matrix initMatrix(size_t rows, size_t cols);
+void set1(Matrix matrix, size_t row, size_t col);
+int get(Matrix matrix, size_t row, size_t col);
+void printMatrix(Matrix m);

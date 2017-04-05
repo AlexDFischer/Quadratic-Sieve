@@ -1,22 +1,23 @@
 #include "sieve.h"
+#include <unistd.h>
 #define SIZE_T_BITS (sizeof(size_t) * 8)
 
 Matrix initMatrix(size_t rows, size_t columns)
 {
-  Matrix matrix;
-  matrix.numRows = rows;
-  matrix.numCols = columns;
-  matrix.mem = calloc(rows * ((columns - 1) / SIZE_T_BITS + 1), sizeof(size_t));
-  return matrix;
+  Matrix Matrix;
+  Matrix.numRows = rows;
+  Matrix.numCols = columns;
+  Matrix.mem = calloc(rows * ((columns - 1) / SIZE_T_BITS + 1), sizeof(size_t));
+  return Matrix;
 }
 
-void freeMatrix(Matrix matrix)
+void freeMatrix(Matrix Matrix)
 {
-  free(matrix.mem);
+  free(Matrix.mem);
 }
 
 /**
- * Given the sieved values and factorization table, returns a matrix with the appropriate values
+ * Given the sieved values and factorization table, returns a Matrix with the appropriate values
  */
 Matrix loadMatrix(BigNumList currValues, FactorizationTable table)
 {
@@ -27,7 +28,7 @@ Matrix loadMatrix(BigNumList currValues, FactorizationTable table)
     numRelations += (mpz_get_ui(currValues.nums[i]) == 1);
   }
 
-  Matrix matrix = initMatrix(table.numPrimes, numRelations);
+  Matrix Matrix = initMatrix(table.numPrimes, numRelations);
   j = 0;
   for (i = 0; i < currValues.len; i++)
   {
@@ -37,21 +38,21 @@ Matrix loadMatrix(BigNumList currValues, FactorizationTable table)
       j++;
     }
   }
-  return matrix;
+  return Matrix;
 }
 
-void set1(Matrix matrix, size_t row, size_t col)
+void set1(Matrix Matrix, size_t row, size_t col)
 {
-  size_t rowSize = (matrix.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
-  size_t *data = matrix.mem + row * rowSize + col / SIZE_T_BITS;
+  size_t rowSize = (Matrix.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
+  size_t *data = Matrix.mem + row * rowSize + col / SIZE_T_BITS;
   //printf("%p\n", (void *)data);
   *data |= ((size_t)1) << (col % SIZE_T_BITS);
 }
 
-int get(Matrix matrix, size_t row, size_t col)
+int get(Matrix Matrix, size_t row, size_t col)
 {
-  size_t rowSize = (matrix.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
-  size_t *data = matrix.mem + row * rowSize + col / SIZE_T_BITS;
+  size_t rowSize = (Matrix.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
+  size_t *data = Matrix.mem + row * rowSize + col / SIZE_T_BITS;
   //printf("%lu / %lu = %lu\n", col, SIZE_T_BITS, col / SIZE_T_BITS);
   //printf("data = %zx\n", *data);
   return (*data & (((size_t)1) << (col % SIZE_T_BITS))) > 0;
@@ -69,35 +70,21 @@ void printMatrix(Matrix m)
     printf("\n");
   }
 }
-// TODO unfinished, Yoni idk if you wanna use this in the null space thing
-void rref(Matrix m)
-{
-  size_t i, j, leadingEntryIndex;
-  leadingEntryIndex = 0; // k will be index of leading entry of current row
-  for (i = 0; i < m.numCols; i++)
-  {
-    if (get(m, i, leadingEntryIndex))
-    {
 
-    } else
-    {
-      for (j = i + 1; j < m.numRows; j++)
-      {
-        if (get(m, j, leadingEntryIndex))
-        {
 
-        }
-      }
-    }
 
-  }
-}
+
+#define MtxGetRowSize(m) ((m.numCols - 1) / SIZE_T_BITS + 1)
+#define MtxGetRowPointer(m, r) (m.mem + r * MtxGetRowSize(m))
+#define MtxGetEltPointer( m, r, c ) (MtxGetRowPointer(m, r) + c * MtxGetRowSize(m))
+#define MtxGetElt(m,r,c) *(MtxGetEltPointer( m, r, c ))
 
 /**
  * Sets row2 to row1 + row2 (mod 2).
  */
 void addRows(Matrix m, size_t row1, size_t row2)
 {
+  if (row1 == row2) return;
   size_t rowSize = (m.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
   size_t *row1ptr = m.mem + row1 * rowSize;
   size_t *row2ptr = m.mem + row2 * rowSize;
@@ -108,6 +95,50 @@ void addRows(Matrix m, size_t row1, size_t row2)
   }
 }
 
+void swapRows(Matrix m, size_t row1, size_t row2)
+{
+  if (row1 == row2) return;
+  size_t rowSize = (m.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
+  size_t *row1ptr = m.mem + row1 * rowSize;
+  size_t *row2ptr = m.mem + row2 * rowSize;
+  size_t i;
+  for (i = 0; i < rowSize; i++)
+  {
+    *(row2ptr + i) ^= *(row1ptr + i);
+    *(row1ptr + i) ^= *(row2ptr + i);
+    *(row2ptr + i) ^= *(row1ptr + i);
+  }
+}
+
+void rref(Matrix m)
+{
+  size_t lead, r, i;
+  size_t rowCount = m.numRows;
+  size_t colCount = m.numCols;
+  
+  lead = 0;
+  for (r=0; r<rowCount; r++) {
+      if (lead >= colCount)
+          return;
+      i = r;
+      while (!get(m, i,lead)) {
+          i++;
+          if (i == rowCount) {
+              i = r;
+              lead++;
+              if (lead == colCount)
+                  return;
+          }
+      }
+      swapRows(m, i, r );
+      for (i=0; i<rowCount; i++) {
+          if ( i != r  && get(m,i,lead)) {
+              addRows(m,r, i) ;
+          }
+      }
+      lead++;
+  }
+}
 /*
 int main()
 {

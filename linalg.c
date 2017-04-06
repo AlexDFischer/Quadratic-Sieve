@@ -145,29 +145,32 @@ PreppedMatr prepareMatrix(Matrix m)
 
   rref(m);
 
+
   size_t n = m.numCols;
   Matrix prepped = initMatrix(n,n);
-  size_t rowSize = (m.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
-  size_t r,c,numVecs=1;
-  for ( r=c=0; c < n; c++)
+
+  size_t i, numVecs = 0;
+  for ( i = 0; i < m.numRows; i++)
   {
-    if (get(m, c, r))
+    size_t j = 0;
+    while (!get(m,i,j) && j < n)
     {
-      size_t i ;
-      for (i = 0; i < n; i++)
-      {
-        if (get(m, r, i))
-        {
-            set1(prepped, c, i);
-        }
-      }
-      r++;
+        j++;
     }
-    else
+    if (j == n)
+        continue;
+
+    size_t k;
+    for (k = 0; k < n; k++)
     {
-      numVecs++;
+        if (get(m,i,k))
+        {
+            set1(prepped, j, k);
+            numVecs++;
+        }
     }
   }
+
   PreppedMatr mtr;
   mtr.m = prepped;
   mtr.numVecs = numVecs;

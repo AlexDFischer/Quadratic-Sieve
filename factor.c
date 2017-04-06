@@ -12,11 +12,8 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
   mpz_init(remainder);
 
   prime_t B = LofNpow(N, smoothnessPower);
-  printf("We will generate primes up to %lu\n", B);
   PrimeList factorBase = primesLEq(B);
   size_t numPrimes = factorBase.len;
-  printPrimes(factorBase);
-  printf("We generated %lu primes\n", numPrimes);
   lowerBoundT(lower, N);
   lowerBoundT(upper, N);
   mpz_add_ui(upper, upper, LofNpow(N, numRelationsPower));
@@ -28,7 +25,7 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
   // len is the number of values of f(T) that we'll test
   size_t len = mpz_get_ui(numOriginalValues);
   len++;
-  gmp_printf("We will try values of T from %Zd to %Zd (%lu different values).\n", lower, upper, len);
+  //gmp_printf("We will try values of T from %Zd to %Zd (%lu different values).\n", lower, upper, len);
   size_t primeIndex = 0;
   size_t var1 = 0, var2 = 0;
   // first do a little trial division
@@ -138,7 +135,7 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
   size_t relationIndex, power;
   for (relationIndex = 0; relationIndex < numRelations; relationIndex++)
   {
-    gmp_printf("T=%Zd", tValues.nums[relationsList[relationIndex]]);
+    //gmp_printf("T=%Zd", tValues.nums[relationsList[relationIndex]]);
     for (primeIndex = 0; primeIndex < numPrimes; primeIndex++)
     {
       mpz_set(dummy, origValues.nums[relationsList[relationIndex]]);
@@ -157,12 +154,45 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
         set1(matrix, primeIndex, relationIndex);
       }
     }
-    printf("\n");
   }
-
   Matrix basis = kernelBasis(matrix);
-  printMatrix(basis);
+
+  mpz_t a, b, aminusb, gcd;
+  mpz_init(a);
+  mpz_init(b);
+  mpz_init(aminusb);
+  mpz_init(gcd);
+  // outer loop: iterate through each basis vector of the null space we found;
+  for (var1 = 0; var1 < basis.numRows; var1++)
+  {
+    mpz_set_ui(a, 1);
+    mpz_set_ui(b, 1);
+    // inner loop: iterate through each element of the null space vector, using it to construct 2 squares congruent mod N
+    for (var2 = 0; var2 < numRelations; var2++)
+    {
+      if (get(basis, var1, var2))
+      {
+        mpz_mul(a, a, origValues.nums[relationsList[var2]]);
+        mpz_mul(b, b, tValues.nums[relationsList[var2]]);
+      }
+    }
+    if (mpz_root(a, a, 2))
+    mpz_sub(aminusb, a, b);
+    mpz_gcd(gcd, aminusb, N);
+    if (mpz_cmp(gcd, N) && mpz_cmp_ui(gcd, 1))
+    {
+      gmp_printf("nontrivial factor found: %Zd\n", gcd);
+      exit(0);
+    }
+
+  }
+  printf("no nontrivial factors foudn :( try more relations\n");
+
+  mpz_clear(a);
+  mpz_clear(b);
+  mpz_clear(aminusb);
   mpz_clear(remainder);
+  mpz_clear(gcd);
   mpz_clear(primeMP);
   mpz_clear(primePowerMP);
   freeBigNumList(currValues);
@@ -172,6 +202,11 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
   mpz_clear(lower);
   mpz_clear(upper);
   mpz_clear(numOriginalValues);
+}
+
+void freeStuff()
+{
+
 }
 
 void divideAtInterval(BigNumList values, size_t initialIndex, size_t offset, mpz_t divisor)

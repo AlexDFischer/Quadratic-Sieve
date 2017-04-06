@@ -3,6 +3,7 @@
 #include <math.h>
 #include <gmp.h>
 #include <mpfr.h>
+#include <sys/time.h>
 
 typedef struct
 {
@@ -54,12 +55,15 @@ void factorizationTableIncrementExponent(FactorizationTable table, size_t fTinde
 exponent_t factorizationTableExponent(FactorizationTable table, size_t fTindex, size_t primeIndex);
 void printFactorization(FactorizationTable table, PrimeList primes, size_t ftIndex);
 
+/* defined in factor.c */
 void divideAtInterval(BigNumList values,
   size_t initialIndex, size_t offset, mpz_t divisor);
 
 int findSolutions(size_t startIndex, size_t *sol1index,
   size_t *sol2index, size_t prime, mpz_t primeMP, size_t primePower, mpz_t primePowerMP,
   BigNumList origValues, BigNumList tValues, mpz_t dummy);
+
+long int timeDifferenceMS(struct timeval *t1, struct timeval *t0);
 
 /* defined in linalg.c */
 Matrix initMatrix(size_t rows, size_t cols);

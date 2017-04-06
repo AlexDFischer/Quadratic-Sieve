@@ -5,6 +5,8 @@
  */
 void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
 {
+  struct timeval t1, t2, t3, t4;
+  gettimeofday(&t1, NULL);
   mpz_t lower, upper, dummy, remainder;
   mpz_init(lower);
   mpz_init(upper);
@@ -131,6 +133,8 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
       var2++;
     }
   }
+  printf("done with relation building\n");
+  gettimeofday(&t2, NULL);
   Matrix matrix = initMatrix(numPrimes, numRelations);
   size_t relationIndex, power;
   for (relationIndex = 0; relationIndex < numRelations; relationIndex++)
@@ -156,7 +160,8 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
     }
   }
   Matrix basis = kernelBasis(matrix);
-
+  printf("done with linear algebra\n");
+  gettimeofday(&t3, NULL);
   mpz_t a, b, aminusb, gcd;
   mpz_init(a);
   mpz_init(b);
@@ -182,11 +187,15 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
     if (mpz_cmp(gcd, N) && mpz_cmp_ui(gcd, 1))
     {
       gmp_printf("nontrivial factor found: %Zd\n", gcd);
+      gettimeofday(&t4, NULL);
+      printf("relation building took: %ld ms.\n", timeDifferenceMS(&t2, &t1));
+      printf("linear algebra took:    %ld ms.\n", timeDifferenceMS(&t3, &t2));
+      printf("gcd computation took:   %ld ms.\n", timeDifferenceMS(&t4, &t3));
+      printf("total time was:         %ld ms.\n", timeDifferenceMS(&t4, &t1));
       exit(0);
     }
-
   }
-  printf("no nontrivial factors foudn :( try more relations\n");
+  printf("no nontrivial factors found :( try more relations\n");
 
   mpz_clear(a);
   mpz_clear(b);
@@ -248,4 +257,9 @@ int findSolutions(size_t startIndex, size_t *sol1index,
     }
   }
   return 0;
+}
+
+long int timeDifferenceMS(struct timeval *t1, struct timeval *t0)
+{
+  return (t1->tv_sec - t0->tv_sec) * 1000 + (t1->tv_usec - t0->tv_usec) / 1000;
 }

@@ -8,7 +8,7 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
   mpz_t lower, upper, dummy, remainder;
   mpz_init(lower);
   mpz_init(upper);
-  mpz_init(dummy); // this variable is used as a cartch-all bignum to avoid having to repeatedly re-initialize new ones
+  mpz_init(dummy); // this variable is used as a catch-all bignum to avoid having to repeatedly re-initialize new ones
   mpz_init(remainder);
 
   prime_t B = LofNpow(N, smoothnessPower);
@@ -160,6 +160,8 @@ void factor(mpz_t N, double numRelationsPower, double smoothnessPower)
     printf("\n");
   }
 
+  Matrix basis = kernelBasis(matrix);
+  printMatrix(basis);
   mpz_clear(remainder);
   mpz_clear(primeMP);
   mpz_clear(primePowerMP);

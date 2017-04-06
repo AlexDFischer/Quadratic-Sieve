@@ -71,14 +71,6 @@ void printMatrix(Matrix m)
   }
 }
 
-
-
-
-#define MtxGetRowSize(m) ((m.numCols - 1) / SIZE_T_BITS + 1)
-#define MtxGetRowPointer(m, r) (m.mem + r * MtxGetRowSize(m))
-#define MtxGetEltPointer( m, r, c ) (MtxGetRowPointer(m, r) + c * MtxGetRowSize(m))
-#define MtxGetElt(m,r,c) *(MtxGetEltPointer( m, r, c ))
-
 /**
  * Sets row2 to row1 + row2 (mod 2).
  */
@@ -139,6 +131,81 @@ void rref(Matrix m)
       lead++;
   }
 }
+
+
+
+typedef struct {
+    Matrix m;
+    size_t numVecs;
+} PreppedMatr;
+
+// Returns a matrix which makes it easier to find the basis of the kernel
+PreppedMatr prepareMatrix(Matrix m)
+{
+
+  rref(m);
+
+  size_t n = m.numCols;
+  Matrix prepped = initMatrix(n,n);
+  size_t rowSize = (m.numCols - 1) / SIZE_T_BITS + 1; // number of size_t's in a row
+  size_t r,c,numVecs=1;
+  for ( r=c=0; c < n; c++)
+  {
+    if (get(m, c, r))
+    {
+      size_t i ;
+      for (i = 0; i < n; i++)
+      {
+        if (get(m, r, i))
+        {
+            set1(prepped, c, i);
+        }
+      }
+      r++;
+    }
+    else
+    {
+      numVecs++;
+    }
+  }
+  PreppedMatr mtr;
+  mtr.m = prepped;
+  mtr.numVecs = numVecs;
+  return mtr;
+}
+
+Matrix kernelBasis(Matrix m)
+{
+  PreppedMatr prepped = prepareMatrix(m);
+  freeMatrix(m);
+  Matrix newMat = prepped.m;
+  size_t n = newMat.numCols;
+  size_t numVecs = prepped.numVecs;
+
+  Matrix basis = initMatrix(numVecs, n);
+  size_t c,v = 0;
+  for (c = 0; c < n; c++)
+  {
+    if (!get(newMat,c,c))
+    {
+        int i;
+        for (i=0; i < n; i++)
+        {
+            size_t val = get(newMat,i,c) | i==c;
+            if (val)
+            {
+                set1(basis,v, i);
+            }
+        }
+        v++;
+    }
+  }
+  freeMatrix(newMat);
+
+  return basis;
+}
+
+
 /*
 int main()
 {

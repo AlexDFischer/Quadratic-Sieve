@@ -66,3 +66,4 @@ Matrix initMatrix(size_t rows, size_t cols);
 void set1(Matrix matrix, size_t row, size_t col);
 int get(Matrix matrix, size_t row, size_t col);
 void printMatrix(Matrix m);
+Matrix kernelBasis(Matrix m);
